@@ -47,21 +47,3 @@ func main() {
 
 	b.Start()
 }
-
-func SendCutePhoto(animal int, to *tb.Chat, b *tb.Bot) {
-	var getCuteAnimal func() *tb.Photo
-
-	switch animal {
-	case DOG:
-		getCuteAnimal = getRandomDog
-	case CAT:
-		getCuteAnimal = getRandomCat
-	case GUINEA_PIG:
-		getCuteAnimal = getRandomGuineaPig
-
-	}
-	animalPhoto, success := tryHard(getCuteAnimal, 10)
-	if success {
-		animalPhoto.Send(b, to, &tb.SendOptions{})
-	}
-}

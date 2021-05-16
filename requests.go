@@ -11,6 +11,27 @@ import (
 	tb "gopkg.in/tucnak/telebot.v2"
 )
 
+func SendCutePhoto(animal int, to *tb.Chat, b *tb.Bot) {
+	var getCuteAnimal func() *tb.Photo
+
+	switch animal {
+	case DOG:
+		getCuteAnimal = getRandomDog
+	case CAT:
+		getCuteAnimal = getRandomCat
+	case GUINEA_PIG:
+		getCuteAnimal = getRandomGuineaPig
+
+	}
+	animalPhoto, success := tryHard(getCuteAnimal, 10)
+	if success {
+		_, err := animalPhoto.Send(b, to, &tb.SendOptions{})
+		if err == nil {
+			saveToDatabase(animal)
+		}
+	}
+}
+
 func getRandomDog() *tb.Photo {
 	// http request to the API
 	resp, err := http.Get("https://random.dog/woof.json")
