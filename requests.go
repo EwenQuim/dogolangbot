@@ -86,9 +86,14 @@ type Listing struct {
 }
 
 func getRandomGuineaPig() *tb.Photo {
+	return getFromReddit("guineapigs")
+}
+
+func getFromReddit(subreddit string) *tb.Photo {
+
 	client := &http.Client{}
 	// http request to the Reddit API
-	req, err := http.NewRequest("GET", "https://www.reddit.com/r/guineapigs/random.json?t=all", nil)
+	req, err := http.NewRequest("GET", fmt.Sprintf("https://www.reddit.com/r/%v/random.json?t=all", subreddit), nil)
 	if err != nil {
 		panic(err)
 	}

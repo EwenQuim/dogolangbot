@@ -40,11 +40,64 @@ func saveToDatabase(animal int) {
 		return
 	}
 
-	println("bof")
+	fmt.Println("saving request for", animalSays)
 
-	_, err = db.Exec(fmt.Sprintf("INSERT INTO commands (date, command) VALUES (\"%v\", \"%v\")", time.Now().Format("2006-01-02 15:04:05"), animalSays))
+	_, err = db.Exec(fmt.Sprintf("INSERT INTO commands (date, command) VALUES (\"%v\", \"%v\");", time.Now().Format("2006-01-02 15:04:05"), animalSays))
 	if err != nil {
 		log.Fatal(err)
 	}
 
+}
+
+func (dogobot Dogobot) updateScores() string {
+	db, err := sql.Open("sqlite", "./compteur.db")
+	if err != nil {
+		log.Fatal("cant open db", err)
+	}
+	defer db.Close()
+
+	// for
+
+	total_count := 0
+	rows, err := db.Query(fmt.Sprintf("SELECT command, count(*) FROM commands GROUP BY command;"))
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var shout string
+		var animal_count int
+		err = rows.Scan(&shout, &animal_count)
+		if err != nil {
+			log.Fatal(err)
+		}
+		dogobot.animals[shout].count = animal_count
+		total_count += animal_count
+		fmt.Println(total_count, animal_count)
+	}
+	dogobot.total_calls = total_count
+	fmt.Println(dogobot.total_calls, total_count)
+
+	err = rows.Err()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	return dogobot.formatScoresResponse()
+
+}
+
+// Most asked animal (15319 requests) :
+// 🐱 55% - Winner ! 🏆
+// 🐶 45%
+func (dogobot Dogobot) formatScoresResponse() string {
+	text := fmt.Sprintf("Most asked animal (%v requests):", dogobot.total_calls)
+	for _, animal := range dogobot.animals {
+		text += fmt.Sprintf("\n%v %.0f%%", animal.emoji, 100*float64(animal.count)/float64(dogobot.total_calls+1))
+		if animal.winner {
+			text += " - Winner! 🏆"
+
+		}
+	}
+	return text
 }

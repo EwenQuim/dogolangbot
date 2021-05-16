@@ -16,7 +16,32 @@ const (
 	GUINEA_PIG
 )
 
+type Animal struct {
+	count  int
+	emoji  string
+	winner bool
+}
+
+type Dogobot struct {
+	animals     map[string]*Animal
+	total_calls int
+}
+
+var dogobot Dogobot
+
+func init() {
+	dogobot = Dogobot{
+		animals: map[string]*Animal{
+			"woof":  {emoji: "🐶"},
+			"meow":  {emoji: "🐱"},
+			"pouic": {emoji: "🐷🇮🇳"},
+		},
+		total_calls: 0,
+	}
+}
+
 func main() {
+
 	b, err := tb.NewBot(tb.Settings{
 		Token:  os.Getenv("TOKEN"),
 		Poller: &tb.LongPoller{Timeout: 10 * time.Second},
@@ -43,6 +68,9 @@ func main() {
 	})
 
 	b.Handle("/winner", func(m *tb.Message) {
+
+		response := dogobot.updateScores()
+		b.Send(m.Chat, response)
 	})
 
 	b.Start()
