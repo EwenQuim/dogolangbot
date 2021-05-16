@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"time"
 
 	tb "gopkg.in/tucnak/telebot.v2"
 )
@@ -45,7 +46,7 @@ type Thing struct {
 
 type Listing struct {
 	Children            []Thing `json:"children,omitempty"`
-	UrlOverriddenByDest string  `json:"url_overridden_by_dest,omitempty`
+	UrlOverriddenByDest string  `json:"url_overridden_by_dest,omitempty"`
 }
 
 func getRandomGuineaPig() *tb.Photo {
@@ -55,7 +56,7 @@ func getRandomGuineaPig() *tb.Photo {
 	if err != nil {
 		panic(err)
 	}
-	req.Header.Set("User-Agent", "android:com.coal:v1.2.0 (by /u/AmethystsStudio)")
+	req.Header.Set("User-Agent", "telegram:@no_data_dog_bot:v1.2.0 (by /u/AmethystsStudio)")
 	resp, err := client.Do(req)
 	if err != nil {
 		panic(err)
@@ -67,7 +68,6 @@ func getRandomGuineaPig() *tb.Photo {
 	if err != nil {
 		println(err)
 	}
-	println(string(jason))
 
 	// decode photo url sent
 	var result []Thing // []map[string]map[string][]map[string]map[string]string
@@ -82,8 +82,41 @@ func getRandomGuineaPig() *tb.Photo {
 	// 	panic(err)
 	// }
 	fmt.Printf("result %v\n", result)
-	if len(result) >= 1 {
-		return &tb.Photo{File: tb.FromURL(result[0].Data.Children[0].Data.UrlOverriddenByDest)}
+
+	photoUrl := result[0].Data.Children[0].Data.UrlOverriddenByDest
+	fmt.Printf("photo link %v\n", photoUrl)
+
+	if photoUrl == "" || photoUrl[:17] != "https://v.redd.it" {
+		return nil
 	}
-	return nil
+	return &tb.Photo{File: tb.FromURL(photoUrl)}
+
 }
+
+func tryHard(f func() *tb.Photo, maxTries int) (*tb.Photo, bool) {
+
+	for tries := 0; tries < maxTries; tries++ {
+
+		photo := f()
+		if photo != nil {
+			return photo, true
+		}
+		time.Sleep(200 * time.Millisecond)
+	}
+	return nil, false
+}
+
+// func tryHard(tries int, f func() *tb.Photo, photo chan *tb.Photo) {
+
+// 	for i := 0; i < tries; i++ {
+
+// 		go func() {
+// 			phoTry := f()
+// 			if photo != nil {
+// 				photo <- phoTry
+// 			}
+// 		}()
+
+// 		time.Sleep(100 * time.Millisecond)
+// 	}
+// }

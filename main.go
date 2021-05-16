@@ -10,6 +10,12 @@ import (
 	tb "gopkg.in/tucnak/telebot.v2"
 )
 
+const (
+	DOG = iota + 1
+	CAT
+	GUINEA_PIG
+)
+
 func main() {
 	b, err := tb.NewBot(tb.Settings{
 		Token:  os.Getenv("TOKEN"),
@@ -22,27 +28,40 @@ func main() {
 	}
 
 	b.Handle("/woof", func(m *tb.Message) {
-		doggo := getRandomDog()
-		_, err := doggo.Send(b, m.Chat, &tb.SendOptions{})
-		if err != nil {
-			log.Println(err)
-		}
+		destinataire := m.Chat
+		go SendCutePhoto(DOG, destinataire, b)
 	})
 
 	b.Handle("/meow", func(m *tb.Message) {
-		catto := getRandomCat()
-		catto.Send(b, m.Chat, &tb.SendOptions{})
+		destinataire := m.Chat
+		go SendCutePhoto(CAT, destinataire, b)
 	})
 
 	b.Handle("/pouic", func(m *tb.Message) {
-		malo := getRandomGuineaPig()
-		if malo != nil {
-			malo.Send(b, m.Chat, &tb.SendOptions{})
-		}
+		destinataire := m.Chat
+		go SendCutePhoto(GUINEA_PIG, destinataire, b)
 	})
 
 	b.Handle("/winner", func(m *tb.Message) {
 	})
 
 	b.Start()
+}
+
+func SendCutePhoto(animal int, to *tb.Chat, b *tb.Bot) {
+	var getCuteAnimal func() *tb.Photo
+
+	switch animal {
+	case DOG:
+		getCuteAnimal = getRandomDog
+	case CAT:
+		getCuteAnimal = getRandomCat
+	case GUINEA_PIG:
+		getCuteAnimal = getRandomGuineaPig
+
+	}
+	animalPhoto, success := tryHard(getCuteAnimal, 10)
+	if success {
+		animalPhoto.Send(b, to, &tb.SendOptions{})
+	}
 }
