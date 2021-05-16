@@ -11,25 +11,35 @@ import (
 	tb "gopkg.in/tucnak/telebot.v2"
 )
 
-func SendCutePhoto(animal int, to *tb.Chat, b *tb.Bot) {
-	var getCuteAnimal func() *tb.Photo
+func (dogobot Dogobot) SendCutePhoto(message string, to *tb.Chat, b *tb.Bot) error {
+	animal := ""
+	println(message)
+	messageSplit := strings.Fields(message)
 
-	switch animal {
-	case DOG:
-		getCuteAnimal = getRandomDog
-	case CAT:
-		getCuteAnimal = getRandomCat
-	case GUINEA_PIG:
-		getCuteAnimal = getRandomGuineaPig
-
+	if len(messageSplit) >= 1 {
+		animal = messageSplit[0][1:]
+		if _, exists := dogobot.animals[animal]; !exists {
+			return nil
+		}
+	} else {
+		return nil
 	}
-	animalPhoto, success := tryHard(getCuteAnimal, 10)
+
+	var success bool
+	var animalPhoto *tb.Photo
+	if dogobot.animals[animal].subreddit == "" {
+		animalPhoto, success = tryHard(dogobot.animals[animal].function, 10)
+	} else {
+		animalPhoto, success = tryHard(func() *tb.Photo { return getFromReddit(dogobot.animals[animal].subreddit) }, 10)
+	}
+
 	if success {
 		_, err := animalPhoto.Send(b, to, &tb.SendOptions{})
 		if err == nil {
 			saveToDatabase(animal)
 		}
 	}
+	return nil
 }
 
 func getRandomDog() *tb.Photo {
@@ -47,7 +57,7 @@ func getRandomDog() *tb.Photo {
 
 	for _, fileType := range []string{"jpg", "peg", "png"} {
 		if photoUrl[len(photoUrl)-3:] == fileType {
-			return &tb.Photo{File: tb.FromURL(result["url"])}
+			return &tb.Photo{File: tb.FromURL(photoUrl)}
 		}
 	}
 	return nil
@@ -68,7 +78,7 @@ func getRandomCat() *tb.Photo {
 
 	for _, fileType := range []string{"jpg", "jpeg", "png"} {
 		if photoUrl[len(photoUrl)-4:] == fileType {
-			return &tb.Photo{File: tb.FromURL(result["url"])}
+			return &tb.Photo{File: tb.FromURL(photoUrl)}
 		}
 	}
 	return nil
@@ -85,9 +95,9 @@ type Listing struct {
 	UrlOverriddenByDest string  `json:"url_overridden_by_dest,omitempty"`
 }
 
-func getRandomGuineaPig() *tb.Photo {
-	return getFromReddit("guineapigs")
-}
+// func getRandomGuineaPig() *tb.Photo {
+// 	return getFromReddit("guineapigs")
+// }
 
 func getFromReddit(subreddit string) *tb.Photo {
 

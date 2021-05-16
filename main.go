@@ -17,9 +17,10 @@ const (
 )
 
 type Animal struct {
-	count  int
-	emoji  string
-	winner bool
+	count     int
+	emoji     string
+	function  func() *tb.Photo // leave subreddit field empty is function is set to something
+	subreddit string           // leave function field empty is subreddit is set to something
 }
 
 type Dogobot struct {
@@ -32,9 +33,11 @@ var dogobot Dogobot
 func init() {
 	dogobot = Dogobot{
 		animals: map[string]*Animal{
-			"woof":  {emoji: "🐶"},
-			"meow":  {emoji: "🐱"},
-			"pouic": {emoji: "🐷🇮🇳"},
+			"woof":  {emoji: "🐶", function: getRandomDog},
+			"meow":  {emoji: "🐱", function: getRandomCat},
+			"pouic": {emoji: "🐷🇮🇳", subreddit: "guineapigs"},
+			"awww":  {emoji: "🥰", subreddit: "awww"},
+			"earth": {emoji: "🌍", subreddit: "earthPorn"},
 		},
 		total_calls: 0,
 	}
@@ -52,19 +55,9 @@ func main() {
 		return
 	}
 
-	b.Handle("/woof", func(m *tb.Message) {
+	b.Handle(tb.OnText, func(m *tb.Message) {
 		destinataire := m.Chat
-		go SendCutePhoto(DOG, destinataire, b)
-	})
-
-	b.Handle("/meow", func(m *tb.Message) {
-		destinataire := m.Chat
-		go SendCutePhoto(CAT, destinataire, b)
-	})
-
-	b.Handle("/pouic", func(m *tb.Message) {
-		destinataire := m.Chat
-		go SendCutePhoto(GUINEA_PIG, destinataire, b)
+		go dogobot.SendCutePhoto(m.Text, destinataire, b)
 	})
 
 	b.Handle("/winner", func(m *tb.Message) {

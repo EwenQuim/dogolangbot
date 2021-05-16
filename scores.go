@@ -9,23 +9,13 @@ import (
 	_ "modernc.org/sqlite"
 )
 
-func saveToDatabase(animal int) {
+func saveToDatabase(animalSays string) {
 
 	db, err := sql.Open("sqlite", "./compteur.db")
 	if err != nil {
 		log.Fatal("cant open db", err)
 	}
 	defer db.Close()
-
-	var animalSays string
-	switch animal {
-	case DOG:
-		animalSays = "woof"
-	case CAT:
-		animalSays = "meow"
-	case GUINEA_PIG:
-		animalSays = "pouic"
-	}
 
 	sqlStmt := `CREATE TABLE IF NOT EXISTS commands (
 
@@ -91,13 +81,9 @@ func (dogobot Dogobot) updateScores() string {
 // 🐱 55% - Winner ! 🏆
 // 🐶 45%
 func (dogobot Dogobot) formatScoresResponse() string {
-	text := fmt.Sprintf("Most asked animal (%v requests):", dogobot.total_calls)
+	text := fmt.Sprintf("Most asked cutie (%v requests):", dogobot.total_calls)
 	for _, animal := range dogobot.animals {
-		text += fmt.Sprintf("\n%v %.0f%%", animal.emoji, 100*float64(animal.count)/float64(dogobot.total_calls+1))
-		if animal.winner {
-			text += " - Winner! 🏆"
-
-		}
+		text += fmt.Sprintf("\n%v %.0f%% (%v)", animal.emoji, 100*float64(animal.count)/float64(dogobot.total_calls+1), animal.count)
 	}
 	return text
 }
