@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"strings"
 	"time"
 
 	tb "gopkg.in/tucnak/telebot.v2"
@@ -21,7 +22,14 @@ func getRandomDog() *tb.Photo {
 	// decode photo url sent
 	var result map[string]string
 	json.NewDecoder(resp.Body).Decode(&result)
-	return &tb.Photo{File: tb.FromURL(result["url"])}
+	photoUrl := strings.ToLower(result["url"])
+
+	for _, fileType := range []string{"jpg", "peg", "png"} {
+		if photoUrl[len(photoUrl)-3:] == fileType {
+			return &tb.Photo{File: tb.FromURL(result["url"])}
+		}
+	}
+	return nil
 }
 
 func getRandomCat() *tb.Photo {
@@ -35,7 +43,14 @@ func getRandomCat() *tb.Photo {
 	// decode photo url sent
 	var result map[string]string
 	json.NewDecoder(resp.Body).Decode(&result)
-	return &tb.Photo{File: tb.FromURL(result["file"])}
+	photoUrl := result["file"]
+
+	for _, fileType := range []string{"jpg", "jpeg", "png"} {
+		if photoUrl[len(photoUrl)-4:] == fileType {
+			return &tb.Photo{File: tb.FromURL(result["url"])}
+		}
+	}
+	return nil
 }
 
 // thing is a Reddit type that holds all of their subtypes.
@@ -70,23 +85,17 @@ func getRandomGuineaPig() *tb.Photo {
 	}
 
 	// decode photo url sent
-	var result []Thing // []map[string]map[string][]map[string]map[string]string
+	var result []Thing
 	err = json.Unmarshal(jason, &result)
 	if err != nil {
 		// do anything
 		println(err)
 	}
 
-	// err = json.NewDecoder(resp.Body).Decode(&result)
-	// if err != nil {
-	// 	panic(err)
-	// }
-	fmt.Printf("result %v\n", result)
-
 	photoUrl := result[0].Data.Children[0].Data.UrlOverriddenByDest
-	fmt.Printf("photo link %v\n", photoUrl)
+	fmt.Printf("photo link: %v\n", photoUrl)
 
-	if photoUrl == "" || photoUrl[:17] != "https://v.redd.it" {
+	if photoUrl == "" || photoUrl[:17] != "https://i.redd.it" {
 		return nil
 	}
 	return &tb.Photo{File: tb.FromURL(photoUrl)}
