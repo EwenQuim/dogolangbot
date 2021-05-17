@@ -13,12 +13,14 @@ import (
 
 func (dogobot Dogobot) SendCutePhoto(message string, to *tb.Chat, b *tb.Bot) error {
 	animal := ""
-	println(message)
+	fmt.Printf("received: `%v`\n", message)
+	message = strings.ReplaceAll(message, "@no_data_dog_bot", "")
 	messageSplit := strings.Fields(message)
 
 	if len(messageSplit) >= 1 {
 		animal = messageSplit[0][1:]
 		if _, exists := dogobot.animals[animal]; !exists {
+			fmt.Println("unknown command, aborting")
 			return nil
 		}
 	} else {
@@ -37,8 +39,10 @@ func (dogobot Dogobot) SendCutePhoto(message string, to *tb.Chat, b *tb.Bot) err
 		_, err := animalPhoto.Send(b, to, &tb.SendOptions{})
 		if err == nil {
 			saveToDatabase(animal)
+			return nil
 		}
 	}
+	fmt.Println("image not found after 10 tries")
 	return nil
 }
 

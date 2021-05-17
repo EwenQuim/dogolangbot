@@ -35,7 +35,7 @@ func init() {
 		animals: map[string]*Animal{
 			"woof":  {emoji: "🐶", function: getRandomDog},
 			"meow":  {emoji: "🐱", function: getRandomCat},
-			"pouic": {emoji: "🐷🇮🇳", subreddit: "guineapigs"},
+			"pouic": {emoji: "🐹", subreddit: "guineapigs"},
 			"awww":  {emoji: "🥰", subreddit: "awww"},
 			"earth": {emoji: "🌍", subreddit: "earthPorn"},
 		},
@@ -55,15 +55,16 @@ func main() {
 		return
 	}
 
+	// Handle any command not already handled that begins by `/`
 	b.Handle(tb.OnText, func(m *tb.Message) {
-		destinataire := m.Chat
-		go dogobot.SendCutePhoto(m.Text, destinataire, b)
+		if m.Text[0] == '/' {
+			destinataire := m.Chat
+			go dogobot.SendCutePhoto(m.Text, destinataire, b)
+		}
 	})
 
 	b.Handle("/winner", func(m *tb.Message) {
-
-		response := dogobot.updateScores()
-		b.Send(m.Chat, response)
+		go b.Send(m.Chat, dogobot.getScores())
 	})
 
 	b.Start()
