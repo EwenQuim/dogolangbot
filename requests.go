@@ -131,8 +131,10 @@ func getFromReddit(subreddit string) *tb.Photo {
 		// do anything
 		println(err)
 	}
-
-	photoUrl := result[0].Data.Children[0].Data.UrlOverriddenByDest
+	var photoUrl string
+	if len(result) > 0 && len(result[0].Data.Children) > 0 {
+		photoUrl = result[0].Data.Children[0].Data.UrlOverriddenByDest
+	}
 	fmt.Printf("photo link: %v\n", photoUrl)
 
 	if photoUrl == "" || photoUrl[:17] != "https://i.redd.it" {

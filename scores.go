@@ -31,7 +31,7 @@ func saveToDatabase(animalSays string) {
 		return
 	}
 
-	_, err = db.Exec(fmt.Sprintf("INSERT INTO commands (date, command) VALUES (\"%v\", \"%v\");", time.Now().Format("2006-01-02 15:04:05.000000"), animalSays))
+	_, err = db.Exec(fmt.Sprintf("INSERT INTO commands (date, command) VALUES (\"%v\", \"%v\");", time.Now().Format("2006-01-02 15:04:05.000000000"), animalSays))
 	if err != nil {
 		log.Fatal(err)
 	}
