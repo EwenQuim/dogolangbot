@@ -10,12 +10,6 @@ import (
 	tb "gopkg.in/tucnak/telebot.v2"
 )
 
-const (
-	DOG = iota + 1
-	CAT
-	GUINEA_PIG
-)
-
 type Animal struct {
 	count     int
 	emoji     string
@@ -28,10 +22,9 @@ type Dogobot struct {
 	total_calls int
 }
 
-var dogobot Dogobot
+func main() {
 
-func init() {
-	dogobot = Dogobot{
+	dogobot := Dogobot{
 		animals: map[string]*Animal{
 			"woof":  {emoji: "🐶", function: getRandomDog},
 			"meow":  {emoji: "🐱", function: getRandomCat},
@@ -41,9 +34,6 @@ func init() {
 		},
 		total_calls: 0,
 	}
-}
-
-func main() {
 
 	b, err := tb.NewBot(tb.Settings{
 		Token:  os.Getenv("TOKEN"),

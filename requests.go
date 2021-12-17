@@ -143,15 +143,15 @@ func getFromReddit(subreddit string) *tb.Photo {
 // tryHard sends n requests and returns the first satisfying result
 func tryHard(f func() *tb.Photo, maxTries int) *tb.Photo {
 
-	firstPhoto := make(chan *tb.Photo, 1)
+	firstPhoto := make(chan *tb.Photo, maxTries)
 	for try := 0; try < maxTries; try++ {
-		go func(try int) {
+		go func(try int, firstPhoto chan<- *tb.Photo) {
 			time.Sleep(time.Duration(try) * time.Duration(try) * 10 * time.Millisecond)
 			photo := f()
 			if photo != nil {
 				firstPhoto <- photo
 			}
-		}(try)
+		}(try, firstPhoto)
 	}
 
 	return <-firstPhoto
