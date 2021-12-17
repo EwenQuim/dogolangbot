@@ -27,15 +27,14 @@ func (dogobot Dogobot) SendCutePhoto(message string, to *tb.Chat, b *tb.Bot) err
 		return nil
 	}
 
-	var success bool
 	var animalPhoto *tb.Photo
 	if dogobot.animals[animal].subreddit == "" {
-		animalPhoto, success = tryHard(dogobot.animals[animal].function, 10)
+		animalPhoto = tryHard(dogobot.animals[animal].function, 10)
 	} else {
-		animalPhoto, success = tryHard(func() *tb.Photo { return getFromReddit(dogobot.animals[animal].subreddit) }, 10)
+		animalPhoto = tryHard(func() *tb.Photo { return getFromReddit(dogobot.animals[animal].subreddit) }, 10)
 	}
 
-	if success {
+	if animalPhoto != nil {
 		_, err := animalPhoto.Send(b, to, &tb.SendOptions{})
 		if err == nil {
 			saveToDatabase(animal)
@@ -60,7 +59,8 @@ func getRandomDog() *tb.Photo {
 	photoUrl := strings.ToLower(result["url"])
 
 	for _, fileType := range []string{"jpg", "peg", "png"} {
-		if  strings.Split(photoUrl, ".")[-1] == fileType {
+		ext := strings.Split(photoUrl, ".")
+		if ext[len(ext)-1] == fileType {
 			return &tb.Photo{File: tb.FromURL(photoUrl)}
 		}
 	}
@@ -81,7 +81,8 @@ func getRandomCat() *tb.Photo {
 	photoUrl := result["file"]
 
 	for _, fileType := range []string{"jpg", "jpeg", "png"} {
-		if  strings.Split(photoUrl, ".")[-1] == fileType {
+		ext := strings.Split(photoUrl, ".")
+		if ext[len(ext)-1] == fileType {
 			return &tb.Photo{File: tb.FromURL(photoUrl)}
 		}
 	}
@@ -98,10 +99,6 @@ type Listing struct {
 	Children            []Thing `json:"children,omitempty"`
 	UrlOverriddenByDest string  `json:"url_overridden_by_dest,omitempty"`
 }
-
-// func getRandomGuineaPig() *tb.Photo {
-// 	return getFromReddit("guineapigs")
-// }
 
 func getFromReddit(subreddit string) *tb.Photo {
 
@@ -128,8 +125,7 @@ func getFromReddit(subreddit string) *tb.Photo {
 	var result []Thing
 	err = json.Unmarshal(jason, &result)
 	if err != nil {
-		// do anything
-		println(err)
+		fmt.Println(err)
 	}
 	var photoUrl string
 	if len(result) > 0 && len(result[0].Data.Children) > 0 {
@@ -144,30 +140,19 @@ func getFromReddit(subreddit string) *tb.Photo {
 
 }
 
-func tryHard(f func() *tb.Photo, maxTries int) (*tb.Photo, bool) {
+// tryHard sends n requests and returns the first satisfying result
+func tryHard(f func() *tb.Photo, maxTries int) *tb.Photo {
 
-	for tries := 0; tries < maxTries; tries++ {
-
-		photo := f()
-		if photo != nil {
-			return photo, true
-		}
-		time.Sleep(200 * time.Millisecond)
+	firstPhoto := make(chan *tb.Photo, 1)
+	for try := 0; try < maxTries; try++ {
+		go func(try int) {
+			time.Sleep(time.Duration(try) * time.Duration(try) * 10 * time.Millisecond)
+			photo := f()
+			if photo != nil {
+				firstPhoto <- photo
+			}
+		}(try)
 	}
-	return nil, false
+
+	return <-firstPhoto
 }
-
-// func tryHard(tries int, f func() *tb.Photo, photo chan *tb.Photo) {
-
-// 	for i := 0; i < tries; i++ {
-
-// 		go func() {
-// 			phoTry := f()
-// 			if photo != nil {
-// 				photo <- phoTry
-// 			}
-// 		}()
-
-// 		time.Sleep(100 * time.Millisecond)
-// 	}
-// }
