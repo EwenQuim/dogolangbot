@@ -18,7 +18,7 @@ func (dogobot Dogobot) SendCutePhoto(message string, to *tb.Chat, b *tb.Bot) err
 	messageSplit := strings.Fields(message)
 
 	if len(messageSplit) >= 1 {
-		animal = messageSplit[0][1:]
+		animal = messageSplit[0][1:] // [1:] to remove slash
 		if _, exists := dogobot.animals[animal]; !exists {
 			fmt.Println("unknown command, aborting")
 			return nil
@@ -60,7 +60,7 @@ func getRandomDog() *tb.Photo {
 	photoUrl := strings.ToLower(result["url"])
 
 	for _, fileType := range []string{"jpg", "peg", "png"} {
-		if photoUrl[len(photoUrl)-3:] == fileType {
+		if  strings.Split(photoUrl, ".")[-1] == fileType {
 			return &tb.Photo{File: tb.FromURL(photoUrl)}
 		}
 	}
@@ -81,7 +81,7 @@ func getRandomCat() *tb.Photo {
 	photoUrl := result["file"]
 
 	for _, fileType := range []string{"jpg", "jpeg", "png"} {
-		if photoUrl[len(photoUrl)-4:] == fileType {
+		if  strings.Split(photoUrl, ".")[-1] == fileType {
 			return &tb.Photo{File: tb.FromURL(photoUrl)}
 		}
 	}
@@ -137,7 +137,7 @@ func getFromReddit(subreddit string) *tb.Photo {
 	}
 	fmt.Printf("photo link: %v\n", photoUrl)
 
-	if photoUrl == "" || photoUrl[:17] != "https://i.redd.it" {
+	if photoUrl == "" || len(photoUrl) < 17 || photoUrl[:17] != "https://i.redd.it" {
 		return nil
 	}
 	return &tb.Photo{File: tb.FromURL(photoUrl)}
