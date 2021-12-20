@@ -4,7 +4,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"net/http"
+	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -46,30 +49,42 @@ func (dogobot Dogobot) SendCutePhoto(message string, to *tb.Chat, b *tb.Bot) err
 }
 
 func getRandomDog() *tb.Photo {
+	var netClient = &http.Client{
+		Timeout: time.Second * 3,
+	}
 	// http request to the API
-	resp, err := http.Get("https://random.dog/woof.json")
+	resp, err := netClient.Get("https://random.dog/woof")
 	if err != nil {
-		panic(err)
+		if os.IsTimeout(err) {
+			log.Fatalf("timeout getting a dog image")
+		}
+		log.Fatalf("error getting a dog image: %v", err)
 	}
 	defer resp.Body.Close()
 
 	// decode photo url sent
-	var result map[string]string
-	json.NewDecoder(resp.Body).Decode(&result)
-	photoUrl := strings.ToLower(result["url"])
+	var result []byte
+	result, err = ioutil.ReadAll(resp.Body)
+	if err != nil {
+		log.Fatalf("error decoding a dog image: %v", err)
+	}
+	// result := "yo.jpg"
+	photoUrl := "https://random.dog/" + strings.ToLower(string(result))
+	fmt.Println("found dog image:", photoUrl)
 
-	for _, fileType := range []string{"jpg", "peg", "png"} {
-		ext := strings.Split(photoUrl, ".")
-		if ext[len(ext)-1] == fileType {
-			return &tb.Photo{File: tb.FromURL(photoUrl)}
-		}
+	ext := filepath.Ext(photoUrl)
+	if ext == ".jpg" || ext == ".jpeg" || ext == ".png" {
+		return &tb.Photo{File: tb.FromURL(photoUrl)}
 	}
 	return nil
 }
 
 func getRandomCat() *tb.Photo {
+	var netClient = &http.Client{
+		Timeout: time.Second * 3,
+	}
 	// http request to the API
-	resp, err := http.Get("http://aws.random.cat/meow")
+	resp, err := netClient.Get("http://aws.random.cat/meow")
 	if err != nil {
 		panic(err)
 	}
@@ -77,14 +92,15 @@ func getRandomCat() *tb.Photo {
 
 	// decode photo url sent
 	var result map[string]string
-	json.NewDecoder(resp.Body).Decode(&result)
+	err = json.NewDecoder(resp.Body).Decode(&result)
+	if err != nil {
+		panic(err)
+	}
 	photoUrl := result["file"]
 
-	for _, fileType := range []string{"jpg", "jpeg", "png"} {
-		ext := strings.Split(photoUrl, ".")
-		if ext[len(ext)-1] == fileType {
-			return &tb.Photo{File: tb.FromURL(photoUrl)}
-		}
+	ext := filepath.Ext(photoUrl)
+	if ext == ".jpg" || ext == ".jpeg" || ext == ".png" {
+		return &tb.Photo{File: tb.FromURL(photoUrl)}
 	}
 	return nil
 }
@@ -102,7 +118,9 @@ type Listing struct {
 
 func getFromReddit(subreddit string) *tb.Photo {
 
-	client := &http.Client{}
+	client := &http.Client{
+		Timeout: time.Second * 3,
+	}
 	// http request to the Reddit API
 	req, err := http.NewRequest("GET", fmt.Sprintf("https://www.reddit.com/r/%v/random.json?t=all", subreddit), nil)
 	if err != nil {
@@ -144,15 +162,43 @@ func getFromReddit(subreddit string) *tb.Photo {
 func tryHard(f func() *tb.Photo, maxTries int) *tb.Photo {
 
 	firstPhoto := make(chan *tb.Photo, maxTries)
-	for try := 0; try < maxTries; try++ {
-		go func(try int, firstPhoto chan<- *tb.Photo) {
-			time.Sleep(time.Duration(try) * time.Duration(try) * 10 * time.Millisecond)
-			photo := f()
-			if photo != nil {
-				firstPhoto <- photo
-			}
-		}(try, firstPhoto)
+	done := make(chan bool, maxTries)
+	gogogo := make(chan int, maxTries)
+
+	for i := 0; i < maxTries; i++ {
+		go func(i int, done <-chan bool, gogogo chan<- int) {
+			defer func() {
+				if r := recover(); r != nil && os.Getenv("ENV") == "dev" {
+					fmt.Println("recovered:", r)
+				}
+			}()
+
+			time.Sleep(time.Duration(i) * time.Duration(i) * 10 * time.Millisecond)
+
+			gogogo <- i
+
+		}(i, done, gogogo)
 	}
 
-	return <-firstPhoto
+	for {
+		select {
+		case photo := <-firstPhoto:
+			return photo
+		case <-gogogo:
+			go func(firstPhoto chan<- *tb.Photo) {
+				defer func() {
+					if r := recover(); r != nil && os.Getenv("ENV") == "dev" {
+						fmt.Println("recovered:", r)
+					}
+				}()
+				photo := f()
+				if photo != nil {
+					firstPhoto <- photo
+					close(gogogo)
+				}
+			}(firstPhoto)
+		}
+
+	}
+
 }

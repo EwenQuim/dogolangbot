@@ -1,8 +1,11 @@
 package main
 
 import (
+	"expvar"
 	"log"
+	"net/http"
 	"os"
+	"runtime"
 	"time"
 
 	_ "github.com/joho/godotenv/autoload"
@@ -15,6 +18,10 @@ type Animal struct {
 	emoji     string
 	function  func() *tb.Photo // leave subreddit field empty is function is set to something
 	subreddit string           // leave function field empty is subreddit is set to something
+}
+
+func goroutines() interface{} {
+	return runtime.NumGoroutine()
 }
 
 type Dogobot struct {
@@ -48,14 +55,24 @@ func main() {
 	// Handle any command not already handled that begins by `/`
 	b.Handle(tb.OnText, func(m *tb.Message) {
 		if m.Text[0] == '/' {
-			destinataire := m.Chat
-			go dogobot.SendCutePhoto(m.Text, destinataire, b)
+			err := dogobot.SendCutePhoto(m.Text, m.Chat, b)
+			if err != nil {
+				panic(err)
+			}
 		}
 	})
 
 	b.Handle("/winner", func(m *tb.Message) {
-		go b.Send(m.Chat, dogobot.getScores())
+		_, err := b.Send(m.Chat, dogobot.getScores())
+		if err != nil {
+			panic(err)
+		}
 	})
 
+	if os.Getenv("ENV") == "dev" {
+		expvar.Publish("Goroutines", expvar.Func(goroutines))
+		go http.ListenAndServe(":1234", nil)
+	}
 	b.Start()
+
 }

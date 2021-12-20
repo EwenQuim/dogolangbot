@@ -7,7 +7,15 @@ import (
 )
 
 func TestTryHardDog(t *testing.T) {
-	photo := tryHard(getRandomDog, 10)
+	photo := tryHard(getRandomDog, 5)
+	t.Log("photo obtained", photo)
+	if photo == nil {
+		t.Fail()
+	}
+}
+
+func TestTryHardCat(t *testing.T) {
+	photo := tryHard(getRandomCat, 5)
 	t.Log("photo obtained", photo)
 	if photo == nil {
 		t.Fail()
@@ -15,7 +23,7 @@ func TestTryHardDog(t *testing.T) {
 }
 
 func TestTryHardReddit(t *testing.T) {
-	photo := tryHard(func() *tb.Photo { return getFromReddit("awww") }, 10)
+	photo := tryHard(func() *tb.Photo { return getFromReddit("awww") }, 5)
 	t.Log("photo obtained", photo)
 	if photo == nil {
 		t.Fail()
