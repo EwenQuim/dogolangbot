@@ -17,7 +17,6 @@ import (
 )
 
 func (dogobot Dogobot) SendCutePhoto(message string, to *tb.Chat, b *tb.Bot) error {
-	message = strings.ReplaceAll(message, "@no_data_dog_bot", "")
 	slog.Info("received", "message", message)
 
 	messageSplit := strings.Fields(message)

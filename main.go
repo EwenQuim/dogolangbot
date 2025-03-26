@@ -39,11 +39,11 @@ func main() {
 
 	dogobot := Dogobot{
 		animals: map[string]*Animal{
-			"woof":  {emoji: "🐶", function: getRandomDog},
-			"meow":  {emoji: "🐱", function: getRandomCat},
-			"pouic": {emoji: "🐹", subreddit: "guineapigs"},
-			"awww":  {emoji: "🥰", subreddit: "awww"},
-			"earth": {emoji: "🌍", subreddit: "earthPorn"},
+			"woof": {emoji: "🐶", function: getRandomDog},
+			"meow": {emoji: "🐱", function: getRandomCat},
+			// "pouic": {emoji: "🐹", subreddit: "guineapigs"},
+			// "awww":  {emoji: "🥰", subreddit: "awww"},
+			// "earth": {emoji: "🌍", subreddit: "earthPorn"},
 		},
 		total_calls: 0,
 		db:          db,
@@ -61,15 +61,14 @@ func main() {
 		return
 	}
 
-	// Handle any command not already handled that begins by `/`
-	b.Handle(tb.OnText, func(m *tb.Message) {
-		if m.Text[0] == '/' {
-			err := dogobot.SendCutePhoto(m.Text, m.Chat, b)
+	for command := range dogobot.animals {
+		b.Handle("/"+command, func(m *tb.Message) {
+			err := dogobot.SendCutePhoto(command, m.Chat, b)
 			if err != nil {
-				slog.Error("error sending photo", "error", err)
+				slog.Error("error sending photo", "command", command, "error", err)
 			}
-		}
-	})
+		})
+	}
 
 	b.Handle("/winner", func(m *tb.Message) {
 		_, err := b.Send(m.Chat, dogobot.getScores())
