@@ -3,7 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"log"
 	"net/http"
 	"os"
@@ -37,21 +37,29 @@ func (dogobot Dogobot) SendCutePhoto(message string, to *tb.Chat, b *tb.Bot) err
 		animalPhoto = tryHard(func() *tb.Photo { return getFromReddit(dogobot.animals[animal].subreddit) }, 10)
 	}
 
-	if animalPhoto != nil {
-		_, err := animalPhoto.Send(b, to, &tb.SendOptions{})
-		if err == nil {
-			saveToDatabase(animal)
-			return nil
-		}
+	if animalPhoto == nil {
+		fmt.Println("image not found after 10 tries")
+		return nil
 	}
-	fmt.Println("image not found after 10 tries")
+
+	_, err := animalPhoto.Send(b, to, &tb.SendOptions{})
+	if err != nil {
+		return err
+	}
+
+	err = saveToDatabase(animal)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
+var netClient = &http.Client{
+	Timeout: time.Second * 3,
+}
+
 func getRandomDog() *tb.Photo {
-	var netClient = &http.Client{
-		Timeout: time.Second * 3,
-	}
 	// http request to the API
 	resp, err := netClient.Get("https://random.dog/woof")
 	if err != nil {
@@ -64,7 +72,7 @@ func getRandomDog() *tb.Photo {
 
 	// decode photo url sent
 	var result []byte
-	result, err = ioutil.ReadAll(resp.Body)
+	result, err = io.ReadAll(resp.Body)
 	if err != nil {
 		log.Fatalf("error decoding a dog image: %v", err)
 	}
@@ -80,23 +88,23 @@ func getRandomDog() *tb.Photo {
 }
 
 func getRandomCat() *tb.Photo {
-	var netClient = &http.Client{
-		Timeout: time.Second * 3,
-	}
 	// http request to the API
-	resp, err := netClient.Get("http://aws.random.cat/meow")
+	resp, err := netClient.Get("https://api.thecatapi.com/v1/images/search")
 	if err != nil {
 		panic(err)
 	}
 	defer resp.Body.Close()
 
 	// decode photo url sent
-	var result map[string]string
+	var result []map[string]any
 	err = json.NewDecoder(resp.Body).Decode(&result)
 	if err != nil {
 		panic(err)
 	}
-	photoUrl := result["file"]
+	photoUrl, ok := result[0]["url"].(string)
+	if !ok {
+		return nil
+	}
 
 	ext := filepath.Ext(photoUrl)
 	if ext == ".jpg" || ext == ".jpeg" || ext == ".png" {
@@ -134,7 +142,7 @@ func getFromReddit(subreddit string) *tb.Photo {
 	defer resp.Body.Close()
 
 	// read response
-	jason, err := ioutil.ReadAll(resp.Body)
+	jason, err := io.ReadAll(resp.Body)
 	if err != nil {
 		println(err)
 	}

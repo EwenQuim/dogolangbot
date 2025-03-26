@@ -1,0 +1,9 @@
+name: dogobot
+
+services:
+  dogobot:
+    image: ewenquim/dogobot
+    build: .
+    platform: linux/amd64
+    environment:
+      - TOKEN=766769793:AAHsLuBXAjqOShHR3aVw6PBxx9yfpk0fIIs

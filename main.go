@@ -2,7 +2,9 @@ package main
 
 import (
 	"expvar"
+	"fmt"
 	"log"
+	"log/slog"
 	"net/http"
 	"os"
 	"runtime"
@@ -31,6 +33,8 @@ type Dogobot struct {
 
 func main() {
 
+	createDb()
+
 	dogobot := Dogobot{
 		animals: map[string]*Animal{
 			"woof":  {emoji: "🐶", function: getRandomDog},
@@ -41,6 +45,8 @@ func main() {
 		},
 		total_calls: 0,
 	}
+
+	fmt.Println("Starting bot")
 
 	b, err := tb.NewBot(tb.Settings{
 		Token:  os.Getenv("TOKEN"),
@@ -57,7 +63,7 @@ func main() {
 		if m.Text[0] == '/' {
 			err := dogobot.SendCutePhoto(m.Text, m.Chat, b)
 			if err != nil {
-				panic(err)
+				slog.Error("error sending photo", "error", err)
 			}
 		}
 	})

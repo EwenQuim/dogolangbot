@@ -10,9 +10,8 @@ import (
 	_ "modernc.org/sqlite"
 )
 
-func saveToDatabase(animalSays string) {
-
-	db, err := sql.Open("sqlite", "./compteur.db")
+func createDb() {
+	db, err := sql.Open("sqlite", "./data/compteur.db")
 	if err != nil {
 		log.Fatal("cant open db", err)
 	}
@@ -30,16 +29,26 @@ func saveToDatabase(animalSays string) {
 		log.Printf("%q: %s\n", err, sqlStmt)
 		return
 	}
+}
+
+func saveToDatabase(animalSays string) error {
+
+	db, err := sql.Open("sqlite", "./data/compteur.db")
+	if err != nil {
+		return fmt.Errorf("cant open db: %v", err)
+	}
+	defer db.Close()
 
 	_, err = db.Exec(fmt.Sprintf("INSERT INTO commands (date, command) VALUES (\"%v\", \"%v\");", time.Now().Format("2006-01-02 15:04:05.000000000"), animalSays))
 	if err != nil {
-		log.Fatal(err)
+		return fmt.Errorf("error while inserting: %v", err)
 	}
 
+	return nil
 }
 
 func (dogobot Dogobot) getScores() string {
-	db, err := sql.Open("sqlite", "./compteur.db")
+	db, err := sql.Open("sqlite", "./data/compteur.db")
 	if err != nil {
 		log.Fatal("cant open db", err)
 	}
