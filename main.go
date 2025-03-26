@@ -1,6 +1,7 @@
 package main
 
 import (
+	"database/sql"
 	"expvar"
 	"fmt"
 	"log"
@@ -29,11 +30,12 @@ func goroutines() interface{} {
 type Dogobot struct {
 	animals     map[string]*Animal
 	total_calls int
+	db          *sql.DB
 }
 
 func main() {
 
-	createDb()
+	db := createDb()
 
 	dogobot := Dogobot{
 		animals: map[string]*Animal{
@@ -44,6 +46,7 @@ func main() {
 			"earth": {emoji: "🌍", subreddit: "earthPorn"},
 		},
 		total_calls: 0,
+		db:          db,
 	}
 
 	fmt.Println("Starting bot")

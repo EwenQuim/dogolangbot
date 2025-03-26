@@ -2,9 +2,11 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log"
+	"log/slog"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -15,19 +17,18 @@ import (
 )
 
 func (dogobot Dogobot) SendCutePhoto(message string, to *tb.Chat, b *tb.Bot) error {
-	animal := ""
-	fmt.Printf("received: `%v`\n", message)
 	message = strings.ReplaceAll(message, "@no_data_dog_bot", "")
+	slog.Info("received", "message", message)
+
 	messageSplit := strings.Fields(message)
 
-	if len(messageSplit) >= 1 {
-		animal = messageSplit[0][1:] // [1:] to remove slash
-		if _, exists := dogobot.animals[animal]; !exists {
-			fmt.Println("unknown command, aborting")
-			return nil
-		}
-	} else {
+	if len(messageSplit) == 0 {
 		return nil
+	}
+
+	animal := strings.TrimLeft(messageSplit[0], "/")
+	if _, exists := dogobot.animals[animal]; !exists {
+		return errors.New("unknown command " + animal)
 	}
 
 	var animalPhoto *tb.Photo
@@ -38,8 +39,7 @@ func (dogobot Dogobot) SendCutePhoto(message string, to *tb.Chat, b *tb.Bot) err
 	}
 
 	if animalPhoto == nil {
-		fmt.Println("image not found after 10 tries")
-		return nil
+		return errors.New("image not found after 10 tries")
 	}
 
 	_, err := animalPhoto.Send(b, to, &tb.SendOptions{})
@@ -47,10 +47,12 @@ func (dogobot Dogobot) SendCutePhoto(message string, to *tb.Chat, b *tb.Bot) err
 		return err
 	}
 
-	err = saveToDatabase(animal)
-	if err != nil {
-		return err
-	}
+	go func() {
+		err = dogobot.saveToDatabase(animal)
+		if err != nil {
+			slog.Error("error saving to database", "error", err)
+		}
+	}()
 
 	return nil
 }

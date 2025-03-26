@@ -4,18 +4,18 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
+	"log/slog"
 	"sort"
 	"time"
 
 	_ "modernc.org/sqlite"
 )
 
-func createDb() {
+func createDb() *sql.DB {
 	db, err := sql.Open("sqlite", "./data/compteur.db")
 	if err != nil {
 		log.Fatal("cant open db", err)
 	}
-	defer db.Close()
 
 	sqlStmt := `CREATE TABLE IF NOT EXISTS commands (
 
@@ -27,19 +27,14 @@ func createDb() {
 	_, err = db.Exec(sqlStmt)
 	if err != nil {
 		log.Printf("%q: %s\n", err, sqlStmt)
-		return
+		return nil
 	}
+
+	return db
 }
 
-func saveToDatabase(animalSays string) error {
-
-	db, err := sql.Open("sqlite", "./data/compteur.db")
-	if err != nil {
-		return fmt.Errorf("cant open db: %v", err)
-	}
-	defer db.Close()
-
-	_, err = db.Exec(fmt.Sprintf("INSERT INTO commands (date, command) VALUES (\"%v\", \"%v\");", time.Now().Format("2006-01-02 15:04:05.000000000"), animalSays))
+func (dogobot Dogobot) saveToDatabase(animalSays string) error {
+	_, err := dogobot.db.Exec(fmt.Sprintf("INSERT INTO commands (date, command) VALUES (\"%v\", \"%v\");", time.Now().Format("2006-01-02 15:04:05.000000000"), animalSays))
 	if err != nil {
 		return fmt.Errorf("error while inserting: %v", err)
 	}
@@ -48,18 +43,14 @@ func saveToDatabase(animalSays string) error {
 }
 
 func (dogobot Dogobot) getScores() string {
-	db, err := sql.Open("sqlite", "./data/compteur.db")
-	if err != nil {
-		log.Fatal("cant open db", err)
-	}
-	defer db.Close()
-
-	total_count := 0
-	rows, err := db.Query("SELECT command, count(*) FROM commands GROUP BY command;")
+	rows, err := dogobot.db.Query("SELECT command, count(*) FROM commands GROUP BY command;")
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer rows.Close()
+
+	total_count := 0
+
 	for rows.Next() {
 		var shout string
 		var animal_count int
@@ -70,12 +61,11 @@ func (dogobot Dogobot) getScores() string {
 		dogobot.animals[shout].count = animal_count
 		total_count += animal_count
 	}
-	dogobot.total_calls = total_count
-
-	err = rows.Err()
-	if err != nil {
-		log.Fatal("error while updating ", err)
+	if rows.Err() != nil {
+		slog.Error("error while reading rows", "error", err)
 	}
+
+	dogobot.total_calls = total_count
 
 	return dogobot.formatScoresResponse()
 
