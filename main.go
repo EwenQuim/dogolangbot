@@ -62,6 +62,7 @@ func main() {
 	}
 
 	for command := range dogobot.animals {
+		slog.Info("registering command", "command", command)
 		b.Handle("/"+command, func(m *tb.Message) {
 			err := dogobot.SendCutePhoto(command, m.Chat, b)
 			if err != nil {
@@ -70,6 +71,7 @@ func main() {
 		})
 	}
 
+	slog.Info("registering command", "command", "winner")
 	b.Handle("/winner", func(m *tb.Message) {
 		_, err := b.Send(m.Chat, dogobot.getScores())
 		if err != nil {
