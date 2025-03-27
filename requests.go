@@ -111,27 +111,33 @@ func getRandomCat() *tb.Photo {
 // tryHard sends n requests and returns the first satisfying result
 func tryHard(f func() *tb.Photo, maxTries int) *tb.Photo {
 
-	firstPhoto := make(chan *tb.Photo, maxTries)
-	done := make(chan bool, maxTries)
-	gogogo := make(chan int, maxTries)
+	firstPhoto := make(chan *tb.Photo)
+	done := make(chan bool)
+	gogogo := make(chan int)
 
 	for i := range maxTries {
-		go func(i int, done <-chan bool, gogogo chan<- int) {
+		go func(i int, done chan<- bool, gogogo chan<- int) {
 			defer func() {
 				if r := recover(); r != nil && os.Getenv("ENV") == "dev" {
 					fmt.Println("recovered:", r)
 				}
 			}()
 
-			time.Sleep(time.Duration(i) * time.Duration(i) * 10 * time.Millisecond)
+			time.Sleep(time.Duration(i) * time.Duration(i) * 100 * time.Millisecond)
 
 			gogogo <- i
+
+			if i == maxTries-1 {
+				done <- true
+			}
 
 		}(i, done, gogogo)
 	}
 
 	for {
 		select {
+		case <-done:
+			return nil
 		case photo := <-firstPhoto:
 			return photo
 		case <-gogogo:
