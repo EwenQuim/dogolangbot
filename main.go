@@ -17,13 +17,12 @@ import (
 )
 
 type Animal struct {
-	count     int
-	emoji     string
-	function  func() *tb.Photo // leave subreddit field empty is function is set to something
-	subreddit string           // leave function field empty is subreddit is set to something
+	count    int
+	emoji    string
+	function func() *tb.Photo // leave subreddit field empty is function is set to something
 }
 
-func goroutines() interface{} {
+func goroutines() any {
 	return runtime.NumGoroutine()
 }
 
@@ -41,9 +40,6 @@ func main() {
 		animals: map[string]*Animal{
 			"woof": {emoji: "🐶", function: getRandomDog},
 			"meow": {emoji: "🐱", function: getRandomCat},
-			// "pouic": {emoji: "🐹", subreddit: "guineapigs"},
-			// "awww":  {emoji: "🥰", subreddit: "awww"},
-			// "earth": {emoji: "🌍", subreddit: "earthPorn"},
 		},
 		total_calls: 0,
 		db:          db,
